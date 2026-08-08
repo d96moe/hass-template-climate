@@ -745,31 +745,32 @@ class TemplateClimate(TemplateEntity, ClimateEntity, RestoreEntity):
             )
 
     @property
+    def _in_range_mode(self) -> bool:
+        """Whether heat_cool should use target_temp_high/low instead of temperature.
+
+        Only true when TARGET_TEMPERATURE_RANGE is actually supported (i.e. high/low
+        templates were configured) - otherwise heat_cool falls back to the same single
+        target_temperature as every other mode, matching what supported_features already
+        advertises to the frontend.
+        """
+        return self._attr_hvac_mode == HVACMode.HEAT_COOL and bool(
+            self._attr_supported_features & ClimateEntityFeature.TARGET_TEMPERATURE_RANGE
+        )
+
+    @property
     def target_temperature(self):
         """Return the temperature we try to reach."""
-        return (
-            self._attr_target_temperature
-            if self._attr_hvac_mode != HVACMode.HEAT_COOL
-            else None
-        )
+        return None if self._in_range_mode else self._attr_target_temperature
 
     @property
     def target_temperature_high(self):
         """Return the temperature high we try to reach."""
-        return (
-            self._attr_target_temperature_high
-            if self._attr_hvac_mode == HVACMode.HEAT_COOL
-            else None
-        )
+        return self._attr_target_temperature_high if self._in_range_mode else None
 
     @property
     def target_temperature_low(self):
         """Return the temperature low we try to reach."""
-        return (
-            self._attr_target_temperature_low
-            if self._attr_hvac_mode == HVACMode.HEAT_COOL
-            else None
-        )
+        return self._attr_target_temperature_low if self._in_range_mode else None
 
     async def async_set_hvac_mode(self, hvac_mode: HVACMode) -> None:
         """Set new operation mode."""
