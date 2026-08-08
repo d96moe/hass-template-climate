@@ -360,7 +360,16 @@ class TemplateClimate(TemplateEntity, ClimateEntity, RestoreEntity):
             self._set_temperature_script = Script(
                 hass, set_temperature_action, self._attr_name, DOMAIN
             )
-            if HVACMode.HEAT_COOL in self._attr_hvac_modes:
+            # Only advertise TARGET_TEMPERATURE_RANGE when the user actually configured
+            # high/low templates. Previously this was forced on any time "heat_cool" was
+            # in modes, even with no high/low templates defined - leaving target_temp_high
+            # and target_temp_low permanently None and the frontend with nothing to show
+            # a setpoint control for in heat_cool mode.
+            has_range_templates = bool(
+                self._target_temperature_high_template
+                or self._target_temperature_low_template
+            )
+            if HVACMode.HEAT_COOL in self._attr_hvac_modes and has_range_templates:
                 self._attr_supported_features |= (
                     ClimateEntityFeature.TARGET_TEMPERATURE_RANGE
                 )
